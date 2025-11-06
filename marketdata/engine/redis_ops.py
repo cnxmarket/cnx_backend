@@ -106,7 +106,8 @@ def apply_fill_netting(
     new_net, new_avg, realized = _apply_fill_math(L, avg, fill_lots, fill_price, contract_size)
 
     # we need the symbol even if we fully close (before we blank it below)
-    resolved_symbol = symbol if symbol else (pos.get("symbol") or "")
+    # resolved_symbol = symbol if symbol else (pos.get("symbol") or "")
+    resolved_symbol = (symbol or pos.get("symbol", "")).upper()
 
     with r.pipeline() as p:
         if abs(Decimal(str(new_net))) < Decimal('1e-12'):
@@ -138,6 +139,9 @@ def apply_fill_netting(
             # Only add to index if we're opening a new position or changing lots
             if abs(Decimal(str(L))) < Decimal('1e-12') or abs(Decimal(str(new_net - L))) > Decimal('1e-12'):
                 p.sadd(k_posidx(uid), position_id)
+
+                # Ensure user is registered for tick updates of this symbol
+                p.sadd(k_symidx(resolved_symbol), uid)
 
         p.execute()
 

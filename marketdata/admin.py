@@ -10,8 +10,13 @@ from .models_admintrades import (
 )
 from .services.admin_broadcast_trades import User, apply_closed_admin_trade_on_save
 from .admin_kyc import *
-admin.site.register(UserAccount)
+from django.contrib import admin, messages
+from django.db import transaction
+from django import forms
+from marketdata.models import WithdrawalRequest, UserAccount
+
 # ------------------ Core models ------------------
+admin.site.register(UserAccount)
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
@@ -147,3 +152,74 @@ from .models_profile import UserProfile
 class UserProfileAdmin(admin.ModelAdmin):
     list_display = ("user", "created_at", "updated_at")
     search_fields = ("user__username", "user__email")
+
+
+class WithdrawalAdminForm(forms.ModelForm):
+    class Meta:
+        model = WithdrawalRequest
+        fields = "__all__"
+
+    def clean(self):
+        cleaned = super().clean()
+        status = cleaned.get("status")
+        comment = (cleaned.get("comment") or "").strip()
+
+        # Load the original row to know if it was already finalised
+        if self.instance.pk:
+            try:
+                original = WithdrawalRequest.objects.get(pk=self.instance.pk)
+            except WithdrawalRequest.DoesNotExist:
+                original = None
+            if original and original.status in (WithdrawalRequest.Status.APPROVED, WithdrawalRequest.Status.REJECTED):
+                raise forms.ValidationError("This withdrawal has already been processed and cannot be edited.")
+
+        if status == WithdrawalRequest.Status.REJECTED and not comment:
+            raise forms.ValidationError("Comment is required when rejecting a request.")
+
+        return cleaned
+
+
+@admin.register(WithdrawalRequest)
+class WithdrawalRequestAdmin(admin.ModelAdmin):
+    form = WithdrawalAdminForm
+    list_display = ("id", "user", "amount", "status", "reviewed_by", "created_at")
+    list_filter = ("status", "created_at")
+    search_fields = ("user__username", "user__email")
+    readonly_fields = ("created_at", "updated_at")
+
+    def save_model(self, request, obj: WithdrawalRequest, form, change):
+        if not change:
+            # Creating: typically status stays 'created'
+            return super().save_model(request, obj, form, change)
+
+        # Fetch original to check previous status
+        original = WithdrawalRequest.objects.get(pk=obj.pk)
+        if original.status in (WithdrawalRequest.Status.APPROVED, WithdrawalRequest.Status.REJECTED):
+            messages.error(request, "Already processed; cannot modify.")
+            return
+
+        new_status = form.cleaned_data.get("status", obj.status)
+
+        if new_status == WithdrawalRequest.Status.APPROVED:
+            with transaction.atomic():
+                ua = UserAccount.objects.select_for_update().get(user_id=obj.user_id)
+                if obj.amount > ua.balance:
+                    messages.error(request, "Insufficient capital at approval time.")
+                    return
+                ua.balance = ua.balance - obj.amount
+                ua.save(update_fields=["balance"])
+                obj.status = WithdrawalRequest.Status.APPROVED
+                obj.reviewed_by = request.user
+                super().save_model(request, obj, form, change)
+                messages.success(request, "Withdrawal approved and balance deducted.")
+                return
+
+        if new_status == WithdrawalRequest.Status.REJECTED:
+            obj.status = WithdrawalRequest.Status.REJECTED
+            obj.reviewed_by = request.user
+            super().save_model(request, obj, form, change)
+            messages.warning(request, "Withdrawal rejected.")
+            return
+
+        # Unchanged / still 'created'
+        super().save_model(request, obj, form, change)

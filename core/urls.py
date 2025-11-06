@@ -23,10 +23,12 @@ from marketdata.views_kyc import RegisterView, KYCSubmitView, KYCStatusView, KYC
 from marketdata.auth_views import KycTokenObtainPairView
 from marketdata.auth_views import LogoutView
 from marketdata.views_profile import MeView, ChangePasswordView
+from marketdata.views import WithdrawalViewSet
 
 
 router = DefaultRouter()
 router.register(r"api/admin_trades", MyAdminTradesViewSet, basename="admin_trades")
+router.register(r"api/withdrawals", WithdrawalViewSet, basename="withdrawal")
 
 urlpatterns = [
     path("admin/", admin.site.urls),  # Add Django admin URL here
@@ -54,5 +56,8 @@ urlpatterns = [
     path("api/kyc/submit/", KYCSubmitView.as_view()),
     path("api/kyc/status/", KYCStatusView.as_view()),
     path("api/kyc/submit_public/", KYCSubmitPublicView.as_view()),
+
+    # path("api/withdrawals/", WithdrawalViewSet, name="withdrawal"),
+
     path("api/", include("payments.urls")),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)  + router.urls

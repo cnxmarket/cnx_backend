@@ -71,3 +71,28 @@ class UserAccount(models.Model):
 
     def __str__(self):
         return f"User {self.user.username} Account: Balance={self.balance}, Equity={self.equity}"
+
+
+class WithdrawalRequest(models.Model):
+    class Status(models.TextChoices):
+        CREATED = "created", "Created"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Rejected"
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="withdrawals")
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.CREATED)
+    comment = models.TextField(blank=True)  # admin remark, shown to user if rejected
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="withdrawals_reviewed"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Withdrawal #{self.id} {self.user} {self.amount} {self.status}"

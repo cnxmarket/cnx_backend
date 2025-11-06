@@ -16,7 +16,7 @@ from .models import Order, Fill
 from decimal import Decimal
 from marketdata.engine.margin_utils import validate_order
 from marketdata.contracts import spec_for
-from marketdata.models import UserAccount
+from marketdata.models import UserAccount, WithdrawalRequest
 from django.db import transaction
 from marketdata.engine.redis_ops import exit_position
 from rest_framework.decorators import api_view, permission_classes
@@ -35,7 +35,11 @@ from .serializers import OrderSerializer, FillSerializer
 from .contracts import SPECS
 from .engine.redis_ops import positions_snapshot, get_redis
 from .engine.positions import on_fill
-
+from marketdata.serializers import (
+    WithdrawalRequestCreateSerializer,
+    WithdrawalRequestListSerializer,
+)
+from rest_framework import viewsets, permissions, mixins
 
 def health(request):
     return JsonResponse({"status": "ok"})
@@ -315,3 +319,20 @@ class OrderHistoryLastFillView(ListAPIView):
                 rn=Window(RowNumber(), partition_by=[F("order__position_id")], order_by=F("ts").desc()),
             ).filter(rn=1).order_by("-ts")
         )
+
+
+class WithdrawalViewSet(
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet,
+):
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = WithdrawalRequest.objects.select_related("user").all()
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs if self.request.user.is_staff else qs.filter(user_id=self.request.user.id)
+
+    def get_serializer_class(self):
+        return WithdrawalRequestCreateSerializer if self.action == "create" else WithdrawalRequestListSerializer
