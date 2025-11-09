@@ -26,6 +26,35 @@ class UserStream(AsyncJsonWebsocketConsumer):
     async def positions_update(self, event):
         await self.send_json({"type": "positions_update", "data": event["data"]})
 
+    # ✅ Fix 1: Add missing handler for margin_alert (error source)
+    async def margin_alert(self, event):
+        await self.send_json({
+            "type": "margin_alert",
+            "data": event.get("data", {}),
+        })
+
+    # ✅ Fix 2: Add handler for capital updates
+    async def capital_update(self, event):
+        await self.send_json({
+            "type": "capital_update",
+            "data": event.get("data", event.get("capital", {})),
+        })
+
+    # ✅ Fix 3: Add handler for live position updates
+    async def positions_update(self, event):
+        await self.send_json({
+            "type": "positions_update",
+            "data": event.get("data", {}),
+        })
+
+    # ✅ Optional: fallback for unknown message types
+    async def default(self, event):
+        await self.send_json({
+            "type": "unhandled_event",
+            "data": event,
+        })
+    
+
 
 class CapitalConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):

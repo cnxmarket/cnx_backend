@@ -1,0 +1,92 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual envs
+.venv/
+venv/
+env/
+ENV/
+
+# Build / packaging
+build/
+dist/
+.eggs/
+*.egg-info/
+
+# Byte-compiled / profiling / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.prof
+.cache/
+.mypy_cache/
+.pyre/
+.pytype/
+.dmypy.json
+
+# --- Django ---
+# Local dev DBs (keep your prod DB outside repo)
+db.sqlite3
+*.sqlite3
+
+# Collected static (generated)
+staticfiles/
+static_root/
+static_collected/
+
+# User uploads (media) — store outside git or use a bucket
+media/
+media_root/
+
+# Logs & runtime
+*.log
+logs/
+celerybeat-schedule
+celerybeat.pid
+*.pid
+*.tmp
+
+# Local settings / secrets (do NOT commit)
+.env
+.env.*
+*.env
+.envrc
+secrets.json
+settings_local.py
+local_settings.py
+*.pem
+*.key
+
+# IDE / editor
+.vscode/
+.idea/
+*.iml
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Docker / Compose overrides (optional)
+docker-compose.override.yml
+
+# Redis dumps (if ever generated locally)
+dump.rdb
+
+# --- Keep Django migrations tracked! ---
+# (Do NOT ignore: app_name/migrations/*.py)
+# If you auto-create __pycache__ inside migrations, it’s covered above.
+
+# Ignore Django settings (single-file layout)
+settings.py
+settings_local.py
+settings_dev.py
+settings_prod.py
+# Ignore settings inside the project module
+core/settings.py
+core/settings_local.py
+core/settings_dev.py
+core/settings_prod.py
