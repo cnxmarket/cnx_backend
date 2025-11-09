@@ -3,6 +3,8 @@ from rest_framework import status, permissions, generics, views
 from rest_framework.response import Response
 from django.utils import timezone
 from django.contrib.auth import get_user_model
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 
 from .serializers_kyc import (
     RegisterSerializer,
@@ -57,7 +59,7 @@ class KYCStatusView(views.APIView):
 
 
 # ---- Optional: Public KYC submit (no login, ties by email) -----------------
-
+@method_decorator(csrf_exempt, name="dispatch")
 class KYCSubmitPublicView(views.APIView):
     """
     Public KYC submit to support: register -> upload KYC -> wait approval -> then login.
