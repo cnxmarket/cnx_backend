@@ -63,14 +63,14 @@ class KYCStatusView(views.APIView):
 class KYCSubmitPublicView(views.APIView):
     """
     Public KYC submit to support: register -> upload KYC -> wait approval -> then login.
-
-    Expected multipart/form-data:
-      - email
-      - aadhaar_number (12 digits)
-      - doc_front (file)
-      - doc_back  (file)
+    Expects multipart/form-data: email, aadhaar_number (12 digits), doc_front, doc_back
     """
+    # ⬇️ No SessionAuthentication here, so CSRF is not re-enforced by DRF
+    authentication_classes = []
     permission_classes = [permissions.AllowAny]
+
+    # Explicitly handle multipart/form-data
+    parser_classes = (MultiPartParser, FormParser)
 
     def post(self, request):
         email = (request.data.get("email") or "").strip()
@@ -90,19 +90,15 @@ class KYCSubmitPublicView(views.APIView):
         if not user:
             return Response({"error": "No user with this email"}, status=400)
 
-        # Basic file validation (mirror serializer checks)
+        # Basic file validation
         for k, f in (("doc_front", doc_front), ("doc_back", doc_back)):
             if getattr(f, "content_type", "") not in (
-                "image/jpeg",
-                "image/png",
-                "image/heic",
-                "image/heif",
+                "image/jpeg", "image/png", "image/heic", "image/heif",
             ):
                 return Response({k: "Unsupported file type"}, status=400)
             if f.size > 5 * 1024 * 1024:
                 return Response({k: "File too large (max 5MB)"}, status=400)
 
-        # Create or update KYC
         kyc, _ = KYCSubmission.objects.update_or_create(
             user=user,
             defaults=dict(
