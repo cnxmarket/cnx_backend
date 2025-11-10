@@ -27,7 +27,7 @@ HEARTBEAT_SEC = 20
 _symbol_threads = {}
 
 # Add BTCUSDT for weekend testing
-SUPPORTED_SYMBOLS = ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "BTCUSDT"]
+SUPPORTED_SYMBOLS = ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "BTCUSDT", "XAUUSD", "NZDUSD"]
 
 
 class QuoteConsumer(AsyncJsonWebsocketConsumer):
