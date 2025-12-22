@@ -96,3 +96,31 @@ class WithdrawalRequest(models.Model):
 
     def __str__(self):
         return f"Withdrawal #{self.id} {self.user} {self.amount} {self.status}"
+    
+
+class AlltickConfig(models.Model):
+    """
+    Dynamic configuration for Alltick API.
+    Uses the most recently updated active record.
+    """
+    api_key = models.CharField(max_length=255, help_text="Your Alltick API Key")
+    base_rest_url = models.URLField(default="https://quote.tradeswitch.net/quote-b-api", help_text="REST API Endpoint")
+    base_ws_url = models.CharField(default="wss://quote.tradeswitch.net/quote-b-ws-api", help_text="WebSocket Endpoint")
+    is_active = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Alltick Configuration"
+        verbose_name_plural = "Alltick Configuration"
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f"Alltick Config ({'Active' if self.is_active else 'Inactive'}) - Updated: {self.updated_at.strftime('%Y-%m-%d %H:%M')}"
+
+    @classmethod
+    def get_config(cls):
+        """Helper to fetch the current active config"""
+        config = cls.objects.filter(is_active=True).first()
+        if not config:
+            return None
+        return config

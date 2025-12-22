@@ -14,7 +14,7 @@ from django.contrib import admin, messages
 from django.db import transaction
 from django import forms
 from marketdata.models import WithdrawalRequest, UserAccount
-
+from .models import AlltickConfig
 # ------------------ Core models ------------------
 admin.site.register(UserAccount)
 
@@ -223,3 +223,15 @@ class WithdrawalRequestAdmin(admin.ModelAdmin):
 
         # Unchanged / still 'created'
         super().save_model(request, obj, form, change)
+
+
+
+@admin.register(AlltickConfig)
+class AlltickConfigAdmin(admin.ModelAdmin):
+    list_display = ('api_key', 'base_rest_url', 'is_active', 'updated_at')
+    list_filter = ('is_active',)
+    search_fields = ('api_key',)
+    
+    # Optional: Prevent deleting the last config to avoid system breakage
+    def has_delete_permission(self, request, obj=None):
+        return False
